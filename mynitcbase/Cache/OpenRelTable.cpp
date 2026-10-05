@@ -220,6 +220,14 @@ int OpenRelTable::closeRel(int relId){
     if(tableMetaInfo[relId].free){
         return E_RELNOTOPEN;
     }
+    if(RelCacheTable::relCache[relId]->dirty){
+        RelCatEntry relCatEntry = RelCacheTable::relCache[relId]->relCatEntry;
+        union Attribute relCatRecord[RELCAT_NO_ATTRS];
+        RelCacheTable::relCatEntryToRecord(&relCatEntry,relCatRecord);
+        RecId recId = RelCacheTable::relCache[relId]->recId;
+        RecBuffer relCatBlock(recId.block);
+        relCatBlock.setRecord(relCatRecord,recId.slot);
+    }
 
     if (RelCacheTable::relCache[relId] != nullptr) {
         free(RelCacheTable::relCache[relId]);

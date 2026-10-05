@@ -25,7 +25,7 @@ void RelCacheTable::recordToRelCatEntry(union Attribute record[RELCAT_NO_ATTRS],
 }
 
 int RelCacheTable::getSearchIndex(int relId,RecId* searchIndex){
-    if(relId<0||relId>MAX_OPEN){
+    if(relId<0||relId>=MAX_OPEN){
         return E_OUTOFBOUND;
     }
     if(relCache[relId]==nullptr){
@@ -51,4 +51,36 @@ int RelCacheTable::resetSearchIndex(int relId){
     reset.block=-1;
     reset.slot=-1;
     return setSearchIndex(relId,&reset);
+}
+
+int RelCacheTable::setRelCatEntry(int relId,RelCatEntry* relCatBuf){
+    if(relId<0||relId>=MAX_OPEN){
+        return E_OUTOFBOUND;
+    }    
+    if(relCache[relId]==nullptr){
+        return E_RELNOTOPEN;
+    }
+    relCache[relId]->relCatEntry=*relCatBuf;
+    relCache[relId]->dirty=1;
+    return SUCCESS;
+}
+
+void RelCacheTable::relCatEntryToRecord(RelCatEntry *relCatEntry, union Attribute record[RELCAT_NO_ATTRS]) {
+    // Copy the relation name into the first attribute (string)
+    strcpy(record[0].sVal, relCatEntry->relName);
+
+    // Copy the number of attributes
+    record[1].nVal = relCatEntry->numAttrs;
+
+    // Copy the number of records
+    record[2].nVal = relCatEntry->numRecs;
+
+    // Copy the first block number of the relation
+    record[3].nVal = relCatEntry->firstBlk;
+
+    // Copy the last block number of the relation
+    record[4].nVal = relCatEntry->lastBlk;
+
+    // Copy the total block count of the relation
+    record[5].nVal = relCatEntry->numSlotsPerBlk;
 }

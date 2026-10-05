@@ -125,3 +125,66 @@ bool isNumber(char *str) {
     int ret = sscanf(str, "%f %n", &ignore, &len);
     return ret == 1 && (size_t)len == strlen(str); // FIXED: Added (size_t) cast to prevent signed/unsigned warning
 }
+
+int Algebra::insert(char relName[ATTR_SIZE], int nAttrs, char record[][ATTR_SIZE]){
+    if (strcmp(relName, RELCAT_RELNAME) == 0 || strcmp(relName, ATTRCAT_RELNAME) == 0) {
+        return E_NOTPERMITTED;
+    }
+    int relId = OpenRelTable::getRelId(relName);
+
+    if (relId == E_RELNOTOPEN) {
+        return E_RELNOTOPEN;
+    }
+
+    // get the relation catalog entry from relation cache
+    // (use RelCacheTable::getRelCatEntry() of Cache Layer)
+    RelCatEntry relCatEntry;
+    RelCacheTable::getRelCatEntry(relId, &relCatEntry);
+
+    /* if relCatEntry.numAttrs != numberOfAttributes in relation,
+       return E_NATTRMISMATCH */
+    if (relCatEntry.numAttrs != nAttrs) {
+        return E_NATTRMISMATCH;
+    }
+
+    // let recordValues[numberOfAttributes] be an array of type union Attribute
+    Attribute recordValues[nAttrs];
+
+    /*
+       Converting 2D char array of record values to Attribute array recordValues
+    */
+    // iterate through 0 to nAttrs-1: (let i be the iterator)
+    for (int i = 0; i < nAttrs; i++) {
+        // get the attr-cat entry for the i'th attribute from the attr-cache
+        // (use AttrCacheTable::getAttrCatEntry())
+        AttrCatEntry attrCatEntry;
+        AttrCacheTable::getAttrCatEntry(relId, i, &attrCatEntry);
+
+        // let type = attrCatEntry.attrType;
+        int type = attrCatEntry.attrType;
+
+        if (type == NUMBER) {
+            // if the char array record[i] can be converted to a number
+            // (check this using isNumber() function)
+            if (isNumber(record[i])) {
+                /* convert the char array to numeral and store it
+                   at recordValues[i].nVal using atof() */
+                recordValues[i].nVal = atof(record[i]);
+            }
+            // else
+            else {
+                return E_ATTRTYPEMISMATCH;
+            }
+        }
+        else if (type == STRING) {
+            // copy record[i] to recordValues[i].sVal
+            strcpy(recordValues[i].sVal, record[i]);
+        }
+    }
+
+    // insert the record by calling BlockAccess::insert() function
+    // let retVal denote the return value of insert call
+    int retVal = BlockAccess::insert(relId, recordValues);
+
+    return retVal;
+}

@@ -2,7 +2,7 @@
 
 unsigned char StaticBuffer::blocks[BUFFER_CAPACITY][BLOCK_SIZE];
 struct BufferMetaInfo StaticBuffer::metainfo[BUFFER_CAPACITY];
-
+unsigned char StaticBuffer::blockAllocMap[DISK_BLOCKS];
 StaticBuffer::StaticBuffer() {
     for (int bufferIndex = 0; bufferIndex < BUFFER_CAPACITY; bufferIndex++) {
         // set metainfo[bufferindex] with the following values
@@ -10,6 +10,9 @@ StaticBuffer::StaticBuffer() {
         metainfo[bufferIndex].dirty = false;
         metainfo[bufferIndex].timeStamp = -1;
         metainfo[bufferIndex].blockNum = -1;
+    }
+    for(int i=0;i<=3;i++){
+        Disk::readBlock(&blockAllocMap[i*BLOCK_SIZE],i);
     }
 }
 
@@ -22,6 +25,9 @@ StaticBuffer::~StaticBuffer() {
         if (!metainfo[bufferIndex].free && metainfo[bufferIndex].dirty) {
             Disk::writeBlock(blocks[bufferIndex], metainfo[bufferIndex].blockNum);
         }
+    }
+    for(int i=0;i<=3;i++){
+        Disk::writeBlock(&blockAllocMap[i*BLOCK_SIZE],i);
     }
 }
 
@@ -104,7 +110,7 @@ int StaticBuffer::setDirtyBit(int blockNum){
 }
 
 int StaticBuffer::getBufferNum(int blockNum){
-    if(blockNum<0||blockNum>DISK_BLOCKS){
+    if(blockNum<0||blockNum>=DISK_BLOCKS){
         return E_OUTOFBOUND;
     }
     int bufferNum=-1;
